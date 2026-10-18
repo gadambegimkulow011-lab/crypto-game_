@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="tk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Clicker Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: #0f172a;
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* Top Header */
+        .header {
+            background: #1e293b;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #334155;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .balance {
+            font-size: 28px;
+            font-weight: bold;
+            color: #f59e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .passive-income {
+            font-size: 13px;
+            color: #10b981;
+            margin-top: 4px;
+        }
+
+        .level-bar-container {
+            width: 100%;
+            background: #334155;
+            height: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .level-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+            transition: width 0.3s;
+        }
+
+        /* Main Game View */
+        .tab-content {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .active-tab {
+            display: flex;
+        }
+
+        /* Bitcoin Clicker */
+        .btc-btn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fbbf24 0%, #d97706 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 90px;
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+            cursor: pointer;
+            transition: transform 0.05s ease;
+            position: relative;
+        }
+
+        .btc-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* Floating text animation (+1) */
+        .floating-text {
+            position: absolute;
+            font-weight: bold;
+            font-size: 24px;
+            color: #f59e0b;
+            animation: floatUp 0.8s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.3); }
+        }
+
+        /* Shop & Tasks UI */
+        .shop-item, .task-item {
+            width: 100%;
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #334155;
+        }
+
+        .btn-action {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-action:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+
+        /* Random Golden Bonus */
+        .bonus-box {
+            position: absolute;
+            font-size: 35px;
+            animation: bounce 1s infinite alternate;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-15px); }
+        }
+
+        /* Navigation Bar */
+        .nav-bar {
+            background: #1e293b;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            border-top: 2px solid #334155;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .nav-btn.active {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="balance">🪙 <span id="coins">0</span></div>
+        <div class="passive-income">Pasiw Getir: +<span id="pas-income">0</span>/sek</div>
+        <div class="level-bar-container">
+            <div class="level-bar" id="level-bar"></div>
+        </div>
+    </div>
+
+    <!-- TAB 1: Clicker Main Game -->
+    <div class="tab-content active-tab" id="game-tab">
+        <div class="btc-btn" id="clicker-btn" onclick="clickBitcoin(event)">⚡</div>
+        <p style="margin-top: 20px; color: #94a3b8;">Dereje: <span id="rank-name" style="color:#f59e0b">Novice Miner</span></p>
+    </div>
+
+    <!-- TAB 2: Shop -->
+    <div class="tab-content" id="shop-tab">
+        <h2 style="margin-bottom: 15px; color: #f59e0b;">🛒 Dükan & Upgrades</h2>
+        <div class="shop-item">
+            <div>
+                <div><b>Tükrik Güýji (+1 Tap)</b></div>
+                <small style="color: #94a3b8;">Baha: <span id="tap-cost">15</span> 🪙</small>
+            </div>
+            <button class="btn-action" id="buy-tap" onclick="buyTapUpgrade()">Satyn Al</button>
+        </div>
+        <div class="shop-item">
+            <div>
+                <div><b>Auto-Miner (+2/sek)</b></div>
+                <small style="color: #94a3b8;">Baha: <span id="miner-cost">50</span> 🪙</small>
+            </div>
+            <button class="btn-action" id="buy-miner" onclick="buyMiner()">Satyn Al</button>
+        </div>
+        <div class="shop-item">
+            <div>
+                <div><b>Crypto Rig (+10/sek)</b></div>
+                <small style="color: #94a3b8;">Baha: <span id="rig-cost">250</span> 🪙</small>
+            </div>
+            <button class="btn-action" id="buy-rig" onclick="buyRig()">Satyn Al</button>
+        </div>
+    </div>
+
+    <!-- TAB 3: Tasks -->
+    <div class="tab-content" id="tasks-tab">
+        <h2 style="margin-bottom: 15px; color: #f59e0b;">📋 Görevler</h2>
+        <div class="task-item">
+            <div>
+                <div><b>Gündelik Bonus</b></div>
+                <small style="color: #10b981;">+100 Mugt Moneta</small>
+            </div>
+            <button class="btn-action" id="daily-btn" onclick="claimDaily()">Al 🎁</button>
+        </div>
+        <div class="task-item">
+            <div>
+                <div><b>100 Gezek Bas</b></div>
+                <small style="color: #10b981;">+200 Moneta</small>
+            </div>
+            <button class="btn-action" id="task1-btn" onclick="claimTask1()">Al</button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-bar">
+        <button class="nav-btn active" onclick="switchTab('game-tab', this)">🎮<span>Oýun</span></button>
+        <button class="nav-btn" onclick="switchTab('shop-tab', this)">🛒<span>Dükan</span></button>
+        <button class="nav-btn" onclick="switchTab('tasks-tab', this)">📋<span>Görevler</span></button>
+    </div>
+
+    <script>
+        // Game State Variables
+        let coins = Number(localStorage.getItem('coins')) || 0;
+        let tapPower = Number(localStorage.getItem('tapPower')) || 1;
+        let passiveIncome = Number(localStorage.getItem('passiveIncome')) || 0;
+        let tapCost = Number(localStorage.getItem('tapCost')) || 15;
+        let minerCost = Number(localStorage.getItem('minerCost')) || 50;
+        let rigCost = Number(localStorage.getItem('rigCost')) || 250;
+        let totalClicks = Number(localStorage.getItem('totalClicks')) || 0;
+
+        // Sound Synth (Web Audio API)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(freq, duration) {
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.frequency.value = freq;
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function updateUI() {
+            document.getElementById('coins').innerText = Math.floor(coins);
+            document.getElementById('pas-income').innerText = passiveIncome;
+            document.getElementById('tap-cost').innerText = tapCost;
+            document.getElementById('miner-cost').innerText = minerCost;
+            document.getElementById('rig-cost').innerText = rigCost;
+
+            // Level bar & Rank
+            let progress = (coins % 500) / 5;
+            document.getElementById('level-bar').style.width = progress + "%";
+            if(coins > 1000) document.getElementById('rank-name').innerText = "👑 Crypto King";
+            else if(coins > 300) document.getElementById('rank-name').innerText = "⚡ Pro Miner";
+
+            // Save
+            localStorage.setItem('coins', coins);
+            localStorage.setItem('tapPower', tapPower);
+            localStorage.setItem('passiveIncome', passiveIncome);
+            localStorage.setItem('tapCost', tapCost);
+            localStorage.setItem('minerCost', minerCost);
+            localStorage.setItem('rigCost', rigCost);
+            localStorage.setItem('totalClicks', totalClicks);
+        }
+
+        // Tap Functionality
+        function clickBitcoin(e) {
+            coins += tapPower;
+            totalClicks++;
+            playSound(400, 0.1);
+            if(navigator.vibrate) navigator.vibrate(30);
+
+            // Floating Text (+1)
+            let floatEl = document.createElement('div');
+            floatEl.className = 'floating-text';
+            floatEl.innerText = '+' + tapPower;
+            floatEl.style.left = e.clientX + 'px';
+            floatEl.style.top = (e.clientY - 20) + 'px';
+            document.body.appendChild(floatEl);
+
+            setTimeout(() => floatEl.remove(), 800);
+            updateUI();
+        }
+
+        // Upgrades
+        function buyTapUpgrade() {
+            if(coins >= tapCost) {
+                coins -= tapCost;
+                tapPower += 1;
+                tapCost = Math.floor(tapCost * 1.5);
+                playSound(600, 0.2);
+                confetti({ particleCount: 30, spread: 50 });
+                updateUI();
+            }
+        }
+
+        function buyMiner() {
+            if(coins >= minerCost) {
+                coins -= minerCost;
+                passiveIncome += 2;
+                minerCost = Math.floor(minerCost * 1.6);
+                playSound(700, 0.2);
+                confetti({ particleCount: 40, spread: 60 });
+                updateUI();
+            }
+        }
+
+        function buyRig() {
+            if(coins >= rigCost) {
+                coins -= rigCost;
+                passiveIncome += 10;
+                rigCost = Math.floor(rigCost * 1.7);
+                playSound(800, 0.3);
+                confetti({ particleCount: 60, spread: 80 });
+                updateUI();
+            }
+        }
+
+        // Passive Income Loop
+        setInterval(() => {
+            if(passiveIncome > 0) {
+                coins += passiveIncome;
+                updateUI();
+            }
+        }, 1000);
+
+        // Daily Bonus & Tasks
+        function claimDaily() {
+            coins += 100;
+            document.getElementById('daily-btn').disabled = true;
+            confetti({ particleCount: 100, spread: 100 });
+            updateUI();
+        }
+
+        function claimTask1() {
+            if(totalClicks >= 100) {
+                coins += 200;
+                document.getElementById('task1-btn').disabled = true;
+                confetti({ particleCount: 100, spread: 100 });
+                updateUI();
+            } else {
+                alert("Heniz 100 gezek basmadyňyz!");
+            }
+        }
+
+        // Tab Navigation
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-tab'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active-tab');
+            btn.classList.add('active');
+        }
+
+        // Spawn Golden Bonus Meteor
+        setInterval(() => {
+            if(Math.random() < 0.3) {
+                let bonus = document.createElement('div');
+                bonus.className = 'bonus-box';
+                bonus.innerText = '🎁';
+                bonus.style.left = Math.random() * 80 + 10 + '%';
+                bonus.style.top = Math.random() * 60 + 20 + '%';
+                bonus.onclick = () => {
+                    coins += 50;
+                    playSound(900, 0.3);
+                    confetti({ particleCount: 50 });
+                    bonus.remove();
+                    updateUI();
+                };
+                document.body.appendChild(bonus);
+                setTimeout(() => bonus.remove(), 4000);
+            }
+        }, 15000);
+
+        updateUI();
+    </script>
+</body>
+</html>
